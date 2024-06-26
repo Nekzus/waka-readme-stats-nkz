@@ -139,7 +139,7 @@ inputs:
 
 runs:
   using: 'docker'
-  image: 'docker://wakareadmestats/waka-readme-stats:master'
+  image: 'docker://nekzus/waka-readme-stats:master'
 
 branding:
   icon: 'activity'
