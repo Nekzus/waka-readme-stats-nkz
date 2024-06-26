@@ -1,0 +1,15 @@
+# Environment files:
+*.env
+
+# Generated graph images:
+assets/
+
+# Library roots:
+venv/
+
+# Python caches:
+__pycache__/
+
+# IDE configuration files:
+.vscode
+.idea
