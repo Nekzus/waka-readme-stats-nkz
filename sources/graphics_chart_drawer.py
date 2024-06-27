@@ -24,15 +24,18 @@ async def create_loc_graph(yearly_data: Dict, save_path: str):
     years = len(yearly_data.keys())
     year_indexes = arange(years)
 
-    languages_all_loc = dict()
     for i, y in enumerate(sorted(yearly_data.keys())):
         for q in yearly_data[y].keys():
-            langs = sorted(yearly_data[y][q].keys(), key=lambda n: yearly_data[y][q][n], reverse=True)[0:MAX_LANGUAGES]
+            langs = sorted(yearly_data[y][q].keys(),
+                           key=lambda n: yearly_data[y][q][n]["add"],
+                           reverse=True)[:MAX_LANGUAGES]
 
             for lang in langs:
                 if lang not in languages_all_loc:
                     languages_all_loc[lang] = array([[0] * years] * 4)
-                languages_all_loc[lang][q - 1][i] = yearly_data[y][q][lang]
+
+                languages_all_loc[lang][q - 1][i] = yearly_data[y][q][lang]["add"]
+
 
     fig = plt.figure()
     ax = fig.add_axes([0, 0, 1.5, 1])
