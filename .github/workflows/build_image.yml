@@ -2,10 +2,8 @@ name: PUBLISH_IMAGE
 
 on:
   push:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+    branches:
+      - master
 
 jobs:
   publish-server-image:
@@ -25,22 +23,10 @@ jobs:
           username: nekzus
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker 🏋️
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: nekzus/waka-readme-stats
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-
       - name: Build and push Docker image 🏗️
         uses: docker/build-push-action@v4
         with:
-          push: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/releases') }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          push: true
+          tags: nekzus/waka-readme-stats:master
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
