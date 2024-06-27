@@ -9,7 +9,6 @@ from manager_download import DownloadManager as DM
 
 MAX_LANGUAGES = 5  # Number of top languages to add to chart, for each year quarter
 GRAPH_PATH = "assets/bar_graph.png"  # Chart saving path.
-GRAPH_Y_ZOOM = 1.3
 
 
 async def create_loc_graph(yearly_data: Dict, save_path: str):
@@ -65,6 +64,11 @@ async def create_loc_graph(yearly_data: Dict, save_path: str):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    plt.ylim(top=GRAPH_Y_ZOOM * amax(cumulative[:, 0]), bottom=-GRAPH_Y_ZOOM * amax(cumulative[:, 1]))
+    max_offset = 0.05 * amax(cumulative.flatten())
+    joined = cumulative.reshape(-1, cumulative.shape[-1])
+    max_additions = amax(joined[:, 0])
+    max_deletions = amax(joined[:, 1])
+    plt.ylim(top=max_additions + max_offset, bottom=-max_deletions - max_offset)
+
     plt.savefig(save_path, bbox_inches="tight")
     plt.close(fig)
