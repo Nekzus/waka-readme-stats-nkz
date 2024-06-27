@@ -3,7 +3,7 @@ name: PUBLISH_IMAGE
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   publish-server-image:
