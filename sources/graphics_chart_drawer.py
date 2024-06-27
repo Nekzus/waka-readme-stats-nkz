@@ -5,10 +5,11 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 
 from manager_download import DownloadManager as DM
+from manager_file import FileManager as FM
 
 
 MAX_LANGUAGES = 5  # Number of top languages to add to chart, for each year quarter
-GRAPH_PATH = "assets/bar_graph.png"  # Chart saving path.
+GRAPH_PATH = f"{FM.ASSETS_DIR}/bar_graph.png"  # Chart saving path.
 
 
 async def create_loc_graph(yearly_data: Dict, save_path: str):
@@ -20,7 +21,8 @@ async def create_loc_graph(yearly_data: Dict, save_path: str):
     :param save_path: Path to save the graph file.
     """
     colors = await DM.get_remote_yaml("linguist")
-
+    if colors is None:
+        colors = dict()
     years = len(yearly_data.keys())
     year_indexes = arange(years)
 
@@ -41,7 +43,7 @@ async def create_loc_graph(yearly_data: Dict, save_path: str):
     cumulative = zeros((years, 4, 2), dtype=int)
 
     for key, value in languages_all_loc.items():
-        color = colors[key]["color"] if colors[key]["color"] is not None else "w"
+        color = colors[key].get("color", "tab:gray")
         language_handles += [mpatches.Patch(color=color, label=key)]
 
         for quarter in range(4):
