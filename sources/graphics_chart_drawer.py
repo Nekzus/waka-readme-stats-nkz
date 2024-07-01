@@ -5,6 +5,7 @@ from manager_download import DownloadManager as DM
 
 MAX_LANGUAGES = 5  # Number of top languages to add to chart, for each year quarter
 GRAPH_PATH = "assets/bar_graph.png"  # Chart saving path.
+DEFAULT_COLOR = "#808080"  # Gray color as default
 
 async def create_loc_graph(yearly_data: dict, save_path: str):
     """
@@ -36,7 +37,7 @@ async def create_loc_graph(yearly_data: dict, save_path: str):
     cumulative = np.zeros((4, years), dtype=int)
 
     for key, value in languages_all_loc.items():
-        color = colors.get(key, {}).get("color", "w")
+        color = colors.get(key, {}).get("color", DEFAULT_COLOR)
         language_handles += [mpatches.Patch(color=color, label=key)]
 
         for quarter in range(4):
