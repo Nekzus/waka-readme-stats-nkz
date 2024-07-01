@@ -1,5 +1,4 @@
-from enum import Enum
-from typing import Dict, Tuple, List
+from typing import List
 from datetime import datetime
 
 from pytz import timezone, utc
@@ -9,47 +8,11 @@ from manager_environment import EnvironmentManager as EM
 from manager_github import GitHubManager as GHM
 from manager_file import FileManager as FM
 
+DAY_TIME_EMOJI = ["🌞", "🌆", "🌃", "🌙"]
+DAY_TIME_NAMES = ["Morning", "Daytime", "Evening", "Night"]
+WEEK_DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-DAY_TIME_EMOJI = ["🌞", "🌆", "🌃", "🌙"]  # Emojis, representing different times of day.
-DAY_TIME_NAMES = ["Morning", "Daytime", "Evening", "Night"]  # Localization identifiers for different times of day.
-WEEK_DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]  # Localization identifiers for different days of week.
-
-
-class Symbol(Enum):
-    """
-    Symbol version enum.
-    Allows to retrieve symbols pairs by calling `Symbol.get_symbols(version)`.
-    """
-
-    VERSION_1 = "█", "░"
-    VERSION_2 = "⣿", "⣀"
-    VERSION_3 = "⬛", "⬜"
-
-    @staticmethod
-    def get_symbols(version: int) -> Tuple[str, str]:
-        """
-        Retrieves symbols pair for specified version.
-
-        :param version: Required symbols version.
-        :returns: Two strings for filled and empty symbol value in a tuple.
-        """
-        return Symbol[f"VERSION_{version}"].value
-
-
-def make_graph(percent: float):
-    """
-    Make text progress bar.
-    Length of the progress bar is 25 characters.
-
-    :param percent: Completion percent of the progress bar.
-    :return: The string progress bar representation.
-    """
-    done_block, empty_block = Symbol.get_symbols(EM.SYMBOL_VERSION)
-    percent_quart = round(percent / 4)
-    return f"{done_block * percent_quart}{empty_block * (25 - percent_quart)}"
-
-
-def make_list(data: List = None, names: List[str] = None, texts: List[str] = None, percents: List[float] = None, top_num: int = 5, sort: bool = True) -> str:
+def make_list(data: List[dict] = None, names: List[str] = None, texts: List[str] = None, percents: List[float] = None, top_num: int = 5, sort: bool = True) -> str:
     """
     Make list of text progress bars with supportive info.
     Each row has the following structure: [name of the measure] [quantity description (with words)] [progress bar] [total percentage].
@@ -67,15 +30,14 @@ def make_list(data: List = None, names: List[str] = None, texts: List[str] = Non
     :returns: The string representation of the list.
     """
     if data is not None:
-        names = [value for item in data for key, value in item.items() if key == "name"] if names is None else names
-        texts = [value for item in data for key, value in item.items() if key == "text"] if texts is None else texts
-        percents = [value for item in data for key, value in item.items() if key == "percent"] if percents is None else percents
+        names = [item["name"] for item in data] if names is None else names
+        texts = [item["text"] for item in data] if texts is None else texts
+        percents = [item["percent"] for item in data] if percents is None else percents
 
     data = list(zip(names, texts, percents))
     top_data = sorted(data[:top_num], key=lambda record: record[2], reverse=True) if sort else data[:top_num]
     data_list = [f"{n[:25]}{' ' * (25 - len(n))}{t}{' ' * (20 - len(t))}{make_graph(p)}   {p:05.2f} % " for n, t, p in top_data]
     return "\n".join(data_list)
-
 
 async def make_commit_day_time_list(time_zone: str) -> str:
     """
@@ -87,10 +49,10 @@ async def make_commit_day_time_list(time_zone: str) -> str:
     stats = str()
 
     result = await DM.get_remote_graphql("repos_contributed_to", username=GHM.USER.login)
-    repos = [d for d in result["data"]["user"]["repositoriesContributedTo"]["nodes"] if d["isFork"] is False]
+    repos = [d for d in result["data"]["user"]["repositoriesContributedTo"]["nodes"] if not d["isFork"]]
 
-    day_times = [0] * 4  # 0 - 6, 6 - 12, 12 - 18, 18 - 24
-    week_days = [0] * 7  # Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+    day_times = [0] * 4
+    week_days = [0] * 7
 
     for repository in repos:
         result = await DM.get_remote_graphql("repo_committed_dates", owner=repository["owner"]["login"], name=repository["name"], id=GHM.USER.node_id)
@@ -124,25 +86,28 @@ async def make_commit_day_time_list(time_zone: str) -> str:
 
     return stats
 
-
-def make_language_per_repo_list(repositories: Dict) -> str:
+def make_language_per_repo_list(repositories: dict) -> str:
     """
-    Calculate language-related info, how many repositories in what language user has.
+    Calculate language-related info from each repository.
 
-    :param repositories: User repositories.
-    :returns: string representation of statistics.
+    :param repositories: List of user repositories.
+    :returns: String representation of statistics.
     """
-    language_count = dict()
-    repos_with_language = [repo for repo in repositories["data"]["user"]["repositories"]["nodes"] if repo["primaryLanguage"] is not None]
-    for repo in repos_with_language:
-        language = repo["primaryLanguage"]["name"]
-        language_count[language] = language_count.get(language, {"count": 0})
-        language_count[language]["count"] += 1
+    stats = str()
 
-    names = list(language_count.keys())
-    texts = [f"{language_count[lang]['count']} {'repo' if language_count[lang]['count'] == 1 else 'repos'}" for lang in names]
-    percents = [round(language_count[lang]["count"] / len(repos_with_language) * 100, 2) for lang in names]
+    languages = {}
+    for repository in repositories["data"]["viewer"]["repositories"]["edges"]:
+        repository = repository["node"]
+        if repository["languages"]["edges"]:
+            languages[repository["name"]] = {}
+            for language in repository["languages"]["edges"]:
+                name = language["node"]["name"]
+                if name in languages[repository["name"]]:
+                    languages[repository["name"]][name] += language["size"]
+                else:
+                    languages[repository["name"]][name] = language["size"]
 
-    top_language = max(list(language_count.keys()), key=lambda x: language_count[x]["count"])
-    title = f"**{FM.t('I Mostly Code in') % top_language}** \n\n" if len(repos_with_language) > 0 else ""
-    return f"{title}```text\n{make_list(names=names, texts=texts, percents=percents)}\n```\n\n"
+    for repo, langs in languages.items():
+        stats += f"📁 **{repo}** \n\n```text\n{make_list(data=sorted(langs.items(), key=lambda x: x[1], reverse=True))}\n\n"
+
+    return stats
