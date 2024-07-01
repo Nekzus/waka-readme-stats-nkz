@@ -5,6 +5,8 @@ from asyncio import run
 from datetime import datetime
 from urllib.parse import quote
 
+from humanize import intword, naturalsize, intcomma
+
 from manager_download import init_download_manager, DownloadManager as DM
 from manager_environment import EnvironmentManager as EM
 from manager_github import init_github_manager, GitHubManager as GHM
