@@ -6,11 +6,9 @@ import matplotlib.pyplot as plt
 
 from manager_download import DownloadManager as DM
 
-
 MAX_LANGUAGES = 5  # Number of top languages to add to chart, for each year quarter
 GRAPH_PATH = "assets/bar_graph.png"  # Chart saving path.
 DEFAULT_COLOR = "#808080"  # Gray color as default
-
 
 async def create_loc_graph(yearly_data: Dict, save_path: str):
     """
@@ -33,9 +31,15 @@ async def create_loc_graph(yearly_data: Dict, save_path: str):
             for lang in langs:
                 if lang not in languages_all_loc:
                     languages_all_loc[lang] = zeros((4, years), dtype=int)
-                added_lines = yearly_data[y][q][lang].get("added", 0)
-                deleted_lines = yearly_data[y][q][lang].get("deleted", 0)
-                languages_all_loc[lang][q - 1][i] = max(0, added_lines - deleted_lines)
+                
+                if isinstance(yearly_data[y][q][lang], dict):
+                    added_lines = yearly_data[y][q][lang].get("added", 0)
+                    deleted_lines = yearly_data[y][q][lang].get("deleted", 0)
+                    net_added_lines = max(0, added_lines - deleted_lines)
+                else:
+                    net_added_lines = yearly_data[y][q][lang]
+                
+                languages_all_loc[lang][q - 1][i] = net_added_lines
 
     fig = plt.figure()
     ax = fig.add_axes([0, 0, 1.5, 1])
